@@ -64,10 +64,14 @@ fn part_2(parsed : &Parsed) -> Vec<[usize; 5]> {
   let mut i = 0;
   while i < parsed.str.len() {
     if bytes[i] == 'A' {
-      let idxs: Vec<usize> = mas_idx.clone().into_iter().map(|idx| {
-        let idx = (idx + (i as i32)) as usize;
-        idx}).collect();
-      let letters = idxs.clone().into_iter().map(|idx| bytes[idx]).collect::<Vec<char>>();
+      let idxs: Vec<usize> = mas_idx.clone()
+        .into_iter()
+        .map(|idx| (idx + (i as i32)) as usize)
+        .collect();
+      let letters = idxs.clone()
+          .into_iter()
+          .map(|idx| bytes[idx])
+          .collect::<Vec<char>>();
       if letters.clone().into_iter().fold(true, |acc, c| acc && (c == 'M' || c == 'S' ))
         && letters[0] != letters[1] && letters[2] != letters[3] {
           ranges.push([i, i + idxs[0], i + idxs[1], i + idxs[2], i + idxs[3]]);
