@@ -8,29 +8,50 @@ struct Parsed {
   len: usize,
   str: String,
 }
+#[derive(Debug, Clone)]
+struct Board {
+  len: usize,
+  tiles: Vec<Tile>,
+}
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 enum Tile {
   Void,
   Obstacle,
   Player,
+  OOB
 }
 
-impl Parsed {
+impl Board {
+  fn make(parsed: &Parsed) -> Self {
+    let bytes = parsed.str.as_bytes();
+    let tiles = bytes.iter().map(|c| {
+      match *c as char {
+        '#' => Tile::Obstacle,
+        '.' => Tile::Void,
+        '^' => Tile::Player,
+        'x' => Tile::OOB,
+        c => panic!("we don't know that char: {}", c)
+      }
+    })
+    .collect();
+    Board {len : parsed.len, tiles}
+  }
   fn get(&self, (x, y) :(usize, usize)) -> Option<Tile> {
     let pos = x + y * self.len;
-    let bytes = self.str.as_bytes();
-    match bytes[pos] as char {
-      '#' => Some(Tile::Obstacle),
-      '.' => Some(Tile::Void),
-      '^' => Some(Tile::Player),
-      'x' => None,
-      c => panic!("we don't know that char: {}", c)
+    match self.tiles[pos] {
+      Tile::OOB => None,
+      tile => Some(tile),
     }
+  }
+
+  fn set(&mut self, (x,y) : (usize, usize), tile: Tile) {
+    let pos = x + y * self.len;
+    self.tiles[pos] = tile;
   }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Guard {
   pos: (usize, usize),
   dir: (i32, i32),
@@ -53,6 +74,16 @@ impl Guard {
     let dir = (dir_x, dir_y);
     dir
   }
+
+  fn get_record(&self) -> GuardRecord {
+    GuardRecord { pos: self.pos, dir: self.dir}
+  }
+}
+
+#[derive(Hash, PartialEq, Eq)]
+struct GuardRecord {
+  pos: (usize, usize),
+  dir: (i32, i32)
 }
 
 fn get_input() -> Parsed {
@@ -67,25 +98,50 @@ fn get_input() -> Parsed {
   Parsed {len, str}
 }
 
-fn main() {
-  let board = get_input();
+struct SimResult {
+  looped: bool,
+  visited: HashSet<(usize, usize)>,
+}
+
+fn sim_guard(board: &Board, guard: &mut Guard) -> SimResult {
   let mut visited = HashSet::new();
-  let mut guard = Guard { pos: (67, 91), dir: (0, -1), t : 2.0 };
-  println!("{:?}", board.get((67, 91)));
+  let mut guard_record = HashSet::new();
   while let Some(tile) = board.get(guard.pos) {
     match tile {
       Tile::Void | Tile::Player => {
         visited.insert(guard.pos);
+        if !guard_record.insert(guard.get_record()) {
+          return SimResult {looped: true, visited}
+        }
         guard.pos = guard.move_by(guard.dir)
       }
       Tile::Obstacle => {
-        // println!("Obstacle at {:?}!", guard.pos);
         guard.pos = guard.move_by((-guard.dir.0, -guard.dir.1));
         guard.dir = guard.turn_right();
         guard.pos = guard.move_by(guard.dir);
-        // println!("Moving towards {:?}!", guard.pos);
-      }
+      },
+      Tile::OOB => panic!("Should not get it here")
     }
   }
-  println!("{:?}", visited.len());
+  SimResult {looped: false, visited}
+}
+
+fn main() {
+  let parsed = get_input();
+  let starting_guard = Guard { pos: (67, 91), dir: (0, -1), t : 2.0 };
+  let mut board = Board::make(&parsed);
+  let mut guard = starting_guard.clone();
+  let sim_result = sim_guard(&board, &mut guard);
+  let to_check = sim_result.visited.into_iter().collect::<Vec<(usize, usize)>>();
+  let mut count = 0;
+  for loc in to_check.iter() {
+    guard = starting_guard.clone();
+    board.set(*loc, Tile::Obstacle);
+    let sim_result = sim_guard(&board, &mut guard);
+    if sim_result.looped {
+      count += 1;
+    }
+    board.set(*loc, Tile::Void);
+  }
+  println!("{}", count);
 }
