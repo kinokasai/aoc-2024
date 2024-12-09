@@ -48,14 +48,11 @@ impl Fsys {
 
   fn compress_block(&mut self) {
     let mut j = self.file_map.len() - 1;
-    // let space_map_len = self.space_map.len();
-    // let mut space_index = &mut self.space_map[i];
-    // let mut file_index = &self.file_map[j];
     while j > 0 {
       let mut i = 0;
       let space_map_len = self.space_map.len();
       let mut space_index = &mut self.space_map[i];
-      let mut file_index = &self.file_map[j];
+      let file_index = &self.file_map[j];
       //find a space, then copy
       while i < space_map_len && space_index.idx < file_index.idx {
         if space_index.len >= file_index.len {
