@@ -1,4 +1,4 @@
-use std::{collections::HashSet, fs};
+use std::{collections::HashSet, fs, time::Instant};
 use petgraph::{algo::all_simple_paths, dot::{Config, Dot}, graph::DiGraph, visit::{Bfs, Dfs}};
 
 #[derive(Debug)]
@@ -97,11 +97,11 @@ fn trail(g : &DiGraph<(), usize, usize>, trailheads: &Vec<usize>, trailends: &Ve
       count += paths.len();
     }
   }
-  println!("{:?}", count);
 
 }
 
 fn main() {
+  let now = Instant::now();
   let filename = match std::env::args().nth(1) {
     None => "./src/full_input".to_string(),
     Some(f) => f
@@ -113,6 +113,8 @@ fn main() {
   let trailheads = get_trailheads(&parsed);
   let trailends = get_trailends(&parsed);
   trail(&g, &trailheads, &trailends);
-  println!("{:?}", trailheads.len());
+  let elapsed = now.elapsed();
+  println!("{:?}", elapsed);
+  // println!("{:?}", trailheads.len());
   // println!("{:?}", Dot::with_config(&g, &[Config::EdgeNoLabel, Config::NodeIndexLabel]));
 }
